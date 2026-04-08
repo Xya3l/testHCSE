@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\DTOs\ProfileData;
+use App\DTO\ProfileData;
 use App\Models\Profile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;

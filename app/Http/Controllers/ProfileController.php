@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\DTOs\ProfileData;
+use App\DTO\ProfileData;
 use App\Enums\ProfileStatus;
 use App\Http\Requests\PaginatorRequest;
 use App\Http\Requests\StoreProfileRequest;
