@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('profiles', function (Blueprint $table) {
+        $statusValues = ['inactive', 'pending', 'active'];
+
+        Schema::create('profiles', function (Blueprint $table) use ($statusValues) {
             $table->uuid('id')->primary();
             $table->string('last_name');
             $table->string('first_name');
             $table->string('picture'); // path to the image file
-            $table->string('status')->default('inactive'); // inactive, pending, active
+            $table->enum('status', $statusValues)->default('inactive');
             $table->timestamps();
 
             $table->index('status');
