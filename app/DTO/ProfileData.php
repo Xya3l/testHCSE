@@ -4,7 +4,7 @@ namespace App\DTO;
 
 use App\Enums\ProfileStatus;
 
-readonly class ProfileData
+final readonly class ProfileData
 {
     public function __construct(
         public string $lastName,
