@@ -155,7 +155,7 @@ class ProfileTest extends TestCase
     {
         $profile = Profile::factory()->create();
 
-        $response = $this->putJson("/api/profiles/{$profile->id}", [
+        $response = $this->postJson("/api/profiles/{$profile->id}", [
             'last_name' => 'Smith',
         ]);
 
@@ -172,7 +172,7 @@ class ProfileTest extends TestCase
         ]);
 
         $response = $this->actingAs($user, 'sanctum')
-            ->putJson("/api/profiles/{$profile->id}", [
+            ->postJson("/api/profiles/{$profile->id}", [
                 'last_name' => 'Smith',
                 'status' => ProfileStatus::ACTIVE->value,
             ]);
@@ -199,7 +199,7 @@ class ProfileTest extends TestCase
 
         // Update uniquement first_name
         $response = $this->actingAs($user, 'sanctum')
-            ->putJson("/api/profiles/{$profile->id}", [
+            ->postJson("/api/profiles/{$profile->id}", [
                 'first_name' => 'Jane',
             ]);
 
@@ -263,7 +263,7 @@ class ProfileTest extends TestCase
         $newFile = UploadedFile::fake()->image('new_profile.jpg');
 
         $response = $this->actingAs($user, 'sanctum')
-            ->putJson("/api/profiles/{$profile->id}", [
+            ->postJson("/api/profiles/{$profile->id}", [
                 'picture' => $newFile,
             ]);
 

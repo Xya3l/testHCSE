@@ -8,11 +8,6 @@ use Illuminate\Validation\Rule;
 
 class StoreProfileRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     public function rules(): array
     {
         return [
@@ -23,19 +18,8 @@ class StoreProfileRequest extends FormRequest
         ];
     }
 
-    public function validatedForModel(?string $picturePath = null, ?string $uuid = null): array
+    public function getPicture(): \Illuminate\Http\UploadedFile
     {
-        $data = $this->validated();
-
-        if ($picturePath !== null) {
-            $data['picture'] = $picturePath;
-            $data['id'] = $uuid;
-        }
-
-        return $data;
-    }
-
-    public function getPicture(): array|\Illuminate\Http\UploadedFile|null  {
         return $this->file('picture');
     }
 }

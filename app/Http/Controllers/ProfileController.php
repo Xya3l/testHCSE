@@ -2,29 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\DTOs\ProfileData;
+use App\Enums\ProfileStatus;
 use App\Http\Requests\PaginatorRequest;
 use App\Http\Requests\StoreProfileRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\ProfileResource;
 use App\Models\Profile;
-use App\Services\ImageService;
+use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ProfileController extends Controller
 {
-
     public function __construct(
-        private readonly ImageService $imageService
+        private readonly ProfileService $profileService
     ) {}
 
     /**
      * Récupère tous les profils avec le statut "actif".
-     * Endpoint public
      */
-    public function getActiveProfiles(PaginatorRequest $request)
+    public function index(PaginatorRequest $request): AnonymousResourceCollection
     {
         $request->validated();
 
@@ -36,26 +35,20 @@ class ProfileController extends Controller
     /**
      * Crée un nouveau profil avec upload d'image
      */
-    public function createProfile(StoreProfileRequest $request): JsonResponse
+    public function store(StoreProfileRequest $request): JsonResponse
     {
-        $profile = DB::transaction(function () use ($request): Profile {
-            $profileId = Str::uuid()->toString();
+        $this->authorize('create', Profile::class);
 
-            $picturePath = $this->imageService->predictPath(
-                $request->getPicture(),
-                Profile::class,
-                $profileId,
-            );
+        $validated = $request->validated();
 
-            $profile = Profile::create($request->validatedForModel($picturePath, $profileId));
+        $data = new ProfileData(
+            lastName: $validated['last_name'],
+            firstName: $validated['first_name'],
+            picture: '',
+            status: ProfileStatus::from($validated['status']),
+        );
 
-            $this->imageService->store(
-                $request->getPicture(),
-                Profile::class,
-                $profile->id
-            );
-            return $profile;
-        });
+        $profile = $this->profileService->create($data, $request->getPicture());
 
         return (new ProfileResource($profile))
             ->response()
@@ -63,63 +56,41 @@ class ProfileController extends Controller
     }
 
     /**
-     * Met à jour ou supprime un profil existant (un seul endpoint pour les deux actions dans la consigne)
+     * Met à jour un profil existant
      */
-    public function updateOrDeleteProfile(UpdateProfileRequest $request, Profile $profile)
+    public function update(UpdateProfileRequest $request, Profile $profile): ProfileResource
     {
-        if ($request->wantsDelete()) {
-            return $this->deleteProfile($profile);
-        }
+        $this->authorize('update', $profile);
 
-        return $this->updateProfile($request, $profile);
+        $validated = $request->validated();
+
+        $data = new ProfileData(
+            lastName: $validated['last_name'] ?? $profile->last_name,
+            firstName: $validated['first_name'] ?? $profile->first_name,
+            picture: $profile->picture,
+            status: isset($validated['status'])
+                ? ProfileStatus::from($validated['status'])
+                : $profile->status,
+        );
+
+        $updatedProfile = $this->profileService->update(
+            $profile,
+            $data,
+            $request->getPicture()
+        );
+
+        return new ProfileResource($updatedProfile);
     }
 
     /**
      * Supprime un profil existant
      */
-    private function deleteProfile(Profile $profile)
+    public function destroy(Profile $profile): Response
     {
-        DB::transaction(function () use ($profile): void {
-            $picturePath = $profile->picture;
-            $profile->delete();
-            $this->imageService->delete($picturePath);
-        });
+        $this->authorize('delete', $profile);
+
+        $this->profileService->delete($profile);
 
         return response()->noContent();
-    }
-
-    /**
-     * Met à jour un profil existant
-     */
-    private function updateProfile(UpdateProfileRequest $request, Profile $profile)
-    {
-        if (!$request->hasPicture()) {
-            $profile->update($request->validatedForModel());
-            return new ProfileResource($profile);
-        }
-
-        $profile = DB::transaction(function () use ($request, $profile): Profile {
-            $oldPath = $profile->picture;
-
-            // l'extension du fichier peut changer
-            $updatedPath = $this->imageService->predictPath(
-                $request->getPicture(),
-                Profile::class,
-                $profile->id,
-            );
-
-            $profile->update($request->validatedForModel($updatedPath));
-
-            $this->imageService->store(
-                $request->getPicture(),
-                Profile::class,
-                $profile->id,
-                $oldPath,
-            );
-
-            return $profile;
-        });
-
-        return new ProfileResource($profile);
     }
 }
